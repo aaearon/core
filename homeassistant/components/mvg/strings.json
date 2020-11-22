@@ -1,0 +1,19 @@
+{
+  "title": "MVG",
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "station": "[%key:common::config_flow::data::station%]"
+        }
+      }
+    },
+    "error": {
+      "invalid_station": "[%key:common::config_flow::error::invalid_station%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    }
+  }
+}
