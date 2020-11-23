@@ -3,6 +3,10 @@ import logging
 import mvg_api
 
 import voluptuous as vol
+import homeassistant.helpers.config_validation as cv
+from homeassistant.core import callback
+from .const import ALL_PRODUCTS, CONF_INCLUDE_PRODUCTS, CONF_STATION
+
 
 from homeassistant import config_entries, core, exceptions
 
@@ -10,8 +14,11 @@ from .const import DOMAIN  # pylint:disable=unused-import
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
-STEP_USER_DATA_SCHEMA = vol.Schema({vol.Required("station"): str})
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_STATION): cv.string,
+    }
+)
 
 
 class MvgApi:
@@ -32,21 +39,24 @@ async def validate_input(hass: core.HomeAssistant, data):
     """
 
     api = MvgApi(data["station"])
-    station_id = await hass.async_add_executor_job(api.check_if_station_exists)
 
-    if not station_id:
+    if not await hass.async_add_executor_job(api.check_if_station_exists):
         raise InvalidStation
 
     # Return info that you want to store in the config entry.
-    return {"title": data["station"], "station_id": station_id}
+    return {"title": data[CONF_STATION]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for MVG."""
 
     VERSION = 1
-    # TODO pick one of the available connection classes in homeassistant/config_entries.py
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return OptionsFlowHandler(config_entry)
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
@@ -69,6 +79,33 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+        )
+
+
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    def __init__(self, config_entry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+
+    async def async_step_init(self, user_input=None):
+        """Manage the options."""
+        if user_input is not None:
+            self.options.update(user_input)
+            return self.async_create_entry(title="", data=self.options)
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_INCLUDE_PRODUCTS,
+                        default=self.config_entry.options.get(
+                            CONF_INCLUDE_PRODUCTS, ALL_PRODUCTS
+                        ),
+                    ): cv.multi_select(ALL_PRODUCTS),
+                }
+            ),
         )
 
 

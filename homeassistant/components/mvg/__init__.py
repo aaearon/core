@@ -6,9 +6,13 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
-
-CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
+from .const import (
+    DOMAIN,
+    CONF_STATION,
+    UNDO_UPDATE_LISTENER,
+    CONF_INCLUDE_PRODUCTS,
+    ALL_PRODUCTS,
+)
 
 PLATFORMS = ["sensor"]
 
@@ -20,8 +24,15 @@ async def async_setup(hass: HomeAssistant, config: dict):
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up MVG from a config entry."""
-    # TODO Store an API object for your platforms to access
-    # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
+    station = entry.data[CONF_STATION]
+
+    undo_listener = entry.add_update_listener(update_listener)
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = {
+        "station": station,
+        UNDO_UPDATE_LISTENER: undo_listener,
+    }
 
     for component in PLATFORMS:
         hass.async_create_task(
@@ -41,7 +52,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
             ]
         )
     )
+
+    hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER]()
+
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+
+async def update_listener(hass, config_entry):
+    """Handle options update."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
