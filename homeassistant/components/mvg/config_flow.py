@@ -5,7 +5,15 @@ import mvg_api
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import callback
-from .const import ALL_PRODUCTS, CONF_INCLUDE_PRODUCTS, CONF_STATION
+from .const import (
+    ATTR_STATION_PRODUCTS,
+    CONF_INCLUDE_PRODUCTS,
+    CONF_STATION,
+    CONF_STATION_ID,
+    CONF_LEAD_TIME,
+    DEFAULT_LEAD_TIME,
+    CONF_INCLUDE_LINES,
+)
 
 
 from homeassistant import config_entries, core, exceptions
@@ -25,11 +33,9 @@ class MvgApi:
     def __init__(self, station):
         self.station = station
 
-    def check_if_station_exists(self) -> str:
-        """Test if the station exists."""
-        station_id = mvg_api.get_id_for_station(self.station)
-        if station_id:
-            return station_id
+    def get_station_info(self) -> str:
+        """Get station information."""
+        return mvg_api.get_locations(self.station)[0]
 
 
 async def validate_input(hass: core.HomeAssistant, data):
@@ -40,11 +46,17 @@ async def validate_input(hass: core.HomeAssistant, data):
 
     api = MvgApi(data["station"])
 
-    if not await hass.async_add_executor_job(api.check_if_station_exists):
+    station_info = await hass.async_add_executor_job(api.get_station_info)
+
+    if not station_info:
         raise InvalidStation
 
     # Return info that you want to store in the config entry.
-    return {"title": data[CONF_STATION]}
+    return {
+        "title": station_info["name"],
+        ATTR_STATION_PRODUCTS: station_info["products"],
+        CONF_STATION_ID: station_info["id"],
+    }
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -58,9 +70,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(config_entry):
         return OptionsFlowHandler(config_entry)
 
-    async def async_step_user(self, user_input=None):
+    async def async_step_user(self, data=None):
         """Handle the initial step."""
-        if user_input is None:
+        if data is None:
             return self.async_show_form(
                 step_id="user", data_schema=STEP_USER_DATA_SCHEMA
             )
@@ -68,14 +80,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
-            info = await validate_input(self.hass, user_input)
+            info = await validate_input(self.hass, data)
+            # Add some metadata grabbed when validating input
+            # to save ourselves some calls to the API
+            data[ATTR_STATION_PRODUCTS] = info[ATTR_STATION_PRODUCTS]
+            data[CONF_STATION_ID] = info[CONF_STATION_ID]
         except InvalidStation:
             errors["base"] = "invalid_station"
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
             errors["base"] = "unknown"
         else:
-            return self.async_create_entry(title=info["title"], data=user_input)
+            return self.async_create_entry(title=info["title"], data=data)
 
         return self.async_show_form(
             step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
@@ -101,9 +117,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_INCLUDE_PRODUCTS,
                         default=self.config_entry.options.get(
-                            CONF_INCLUDE_PRODUCTS, ALL_PRODUCTS
+                            CONF_INCLUDE_PRODUCTS,
+                            self.config_entry.data[ATTR_STATION_PRODUCTS],
                         ),
-                    ): cv.multi_select(ALL_PRODUCTS),
+                    ): cv.multi_select(self.config_entry.data[ATTR_STATION_PRODUCTS]),
+                    vol.Optional(
+                        CONF_LEAD_TIME,
+                        default=self.config_entry.options.get(
+                            CONF_LEAD_TIME, DEFAULT_LEAD_TIME
+                        ),
+                    ): int,
                 }
             ),
         )

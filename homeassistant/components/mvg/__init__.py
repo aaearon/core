@@ -11,7 +11,6 @@ from .const import (
     CONF_STATION,
     UNDO_UPDATE_LISTENER,
     CONF_INCLUDE_PRODUCTS,
-    ALL_PRODUCTS,
 )
 
 PLATFORMS = ["sensor"]

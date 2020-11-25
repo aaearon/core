@@ -3,17 +3,30 @@
   "config": {
     "step": {
       "user": {
+        "description": "Provide the station to retrieve depatures for",
         "data": {
-          "station": "[%key:common::config_flow::data::station%]"
+          "station": "Station"
         }
       }
-    },
-    "error": {
-      "invalid_station": "[%key:common::config_flow::error::invalid_station%]",
-      "unknown": "[%key:common::config_flow::error::unknown%]"
-    },
-    "abort": {
-      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options",
+        "description": "Customize the departures returned",
+        "data": {
+          "include_products": "Modes of transporation",
+          "lead_time": "Lead time"
+        }
+      }
+    }
+  },
+  "error": {
+    "invalid_station": "No station found with that name. Try again.",
+    "unknown": "[%key:common::config_flow::error::unknown%]"
+  },
+  "abort": {
+    "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
   }
 }

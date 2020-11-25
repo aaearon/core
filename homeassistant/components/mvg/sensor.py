@@ -6,7 +6,14 @@ import mvg_api
 from homeassistant.const import TEMP_CELSIUS, TIME_MINUTES
 from homeassistant.helpers.entity import Entity
 
-from .const import CONF_STATION, CONF_INCLUDE_PRODUCTS, ALL_PRODUCTS
+from .const import (
+    ATTR_STATION_PRODUCTS,
+    CONF_STATION,
+    CONF_STATION_ID,
+    CONF_INCLUDE_PRODUCTS,
+    DEFAULT_LEAD_TIME,
+    CONF_LEAD_TIME,
+)
 
 SCAN_INTERVAL = timedelta(seconds=30)
 ICONS = {
@@ -20,12 +27,18 @@ ICONS = {
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Set up entry."""
 
-    include_products = config_entry.options.get(CONF_INCLUDE_PRODUCTS, ALL_PRODUCTS)
+    include_products = config_entry.options.get(
+        CONF_INCLUDE_PRODUCTS, config_entry.data[ATTR_STATION_PRODUCTS]
+    )
+    lead_time = config_entry.options.get(CONF_LEAD_TIME, DEFAULT_LEAD_TIME)
 
     async_add_devices(
         [
             MvgSensor(
-                name=config_entry.data[CONF_STATION], include_products=include_products
+                name=config_entry.data[CONF_STATION],
+                station_id=config_entry.data[CONF_STATION_ID],
+                include_products=include_products,
+                lead_time=lead_time,
             )
         ]
     )
@@ -34,12 +47,14 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 class MvgSensor(Entity):
     """Representation of a Sensor."""
 
-    def __init__(self, name, include_products):
+    def __init__(self, name, station_id, include_products, lead_time):
         """Initialize the sensor."""
         self._name = name
+        self._station_id = station_id
         self._state = None
         self._icon = None
         self.include_products = include_products
+        self.lead_time = lead_time
 
         self.departures = None
 
@@ -77,12 +92,9 @@ class MvgSensor(Entity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-
-        station_id = mvg_api.get_id_for_station(self._name)
-
-        if station_id:
+        if self._station_id:
             desired_departures = []
-            results = mvg_api.get_departures(station_id)
+            results = mvg_api.get_departures(self._station_id)
 
             # The API sometimes returns departures that are extremely
             # in the past (sometimes up to 25 minutes in the past)
@@ -91,7 +103,7 @@ class MvgSensor(Entity):
             # to have in some use cases.
             for departure in results:
                 if (
-                    departure["departureTimeMinutes"] > -5
+                    departure["departureTimeMinutes"] > self.lead_time
                     and departure["product"] in self.include_products
                 ):
                     desired_departures.append(departure)

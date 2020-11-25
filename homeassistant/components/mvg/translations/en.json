@@ -1,17 +1,30 @@
 {
+    "abort": {
+        "already_configured": "Device is already configured"
+    },
     "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "invalid_station": "Station was not found. Check the name",
-            "unknown": "Unexpected error"
-        },
         "step": {
             "user": {
                 "data": {
                     "station": "Station"
-                }
+                },
+                "description": "Provide the station to retrieve depatures for"
+            }
+        }
+    },
+    "error": {
+        "invalid_station": "No station found with that name. Try again.",
+        "unknown": "Unexpected error"
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "include_products": "Modes of transporation",
+                    "lead_time": "Lead time"
+                },
+                "description": "Customize the departures returned",
+                "title": "Options"
             }
         }
     },
