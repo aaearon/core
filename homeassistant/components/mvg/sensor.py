@@ -40,7 +40,8 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
                 include_products=include_products,
                 lead_time=lead_time,
             )
-        ]
+        ],
+        True,
     )
 
 
@@ -82,8 +83,9 @@ class MvgSensor(Entity):
         if not self.departures:
             return None
 
-        attributes = self.departures[0]
-        attributes["upcoming_departures"] = self.departures[1:5]
+        attributes = {}
+        attributes.update(self.departures[0])
+        attributes["upcoming_departures"] = self.departures[0:5]
 
         return attributes
 
