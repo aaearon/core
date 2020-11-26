@@ -1,18 +1,22 @@
 """Platform for sensor integration."""
-from homeassistant.components import mvg
-
 from datetime import timedelta
+
 import mvg_api
-from homeassistant.const import TEMP_CELSIUS, TIME_MINUTES
+
+from homeassistant.components import mvg
+from homeassistant.const import ATTR_ATTRIBUTION, TIME_MINUTES, CONF_NAME
 from homeassistant.helpers.entity import Entity
 
 from .const import (
-    ATTR_STATION_PRODUCTS,
+    CONF_DEPARTURES_TO_SHOW,
+    CONF_INCLUDE_PRODUCTS,
+    CONF_LEAD_TIME,
     CONF_STATION,
     CONF_STATION_ID,
-    CONF_INCLUDE_PRODUCTS,
+    DATA_ATTRIBUTION,
+    DEFAULT_DEPARTURES_TO_SHOW,
     DEFAULT_LEAD_TIME,
-    CONF_LEAD_TIME,
+    STATION_PRODUCTS,
 )
 
 SCAN_INTERVAL = timedelta(seconds=30)
@@ -28,17 +32,22 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
     """Set up entry."""
 
     include_products = config_entry.options.get(
-        CONF_INCLUDE_PRODUCTS, config_entry.data[ATTR_STATION_PRODUCTS]
+        CONF_INCLUDE_PRODUCTS, config_entry.data[STATION_PRODUCTS]
     )
     lead_time = config_entry.options.get(CONF_LEAD_TIME, DEFAULT_LEAD_TIME)
+    departures_to_show = config_entry.options.get(
+        CONF_DEPARTURES_TO_SHOW, DEFAULT_DEPARTURES_TO_SHOW
+    )
 
     async_add_devices(
         [
             MvgSensor(
-                name=config_entry.data[CONF_STATION],
+                name=config_entry.data[CONF_NAME],
+                station=config_entry.data[CONF_STATION],
                 station_id=config_entry.data[CONF_STATION_ID],
                 include_products=include_products,
                 lead_time=lead_time,
+                departures_to_show=departures_to_show,
             )
         ],
         True,
@@ -48,15 +57,20 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 class MvgSensor(Entity):
     """Representation of a Sensor."""
 
-    def __init__(self, name, station_id, include_products, lead_time):
+    def __init__(
+        self, name, station, station_id, include_products, lead_time, departures_to_show
+    ):
         """Initialize the sensor."""
         self._name = name
+        self._station = station
         self._station_id = station_id
         self._state = None
         self._icon = None
         self.include_products = include_products
         self.lead_time = lead_time
+        self.departures_to_show = departures_to_show
 
+        self.data = MvgDepartureData(self._station_id)
         self.departures = None
 
     @property
@@ -84,8 +98,10 @@ class MvgSensor(Entity):
             return None
 
         attributes = {}
+        attributes["station"] = self._station
+        attributes[ATTR_ATTRIBUTION] = DATA_ATTRIBUTION
         attributes.update(self.departures[0])
-        attributes["upcoming_departures"] = self.departures[0:5]
+        attributes["upcoming_departures"] = self.departures[: self.departures_to_show]
 
         return attributes
 
@@ -94,32 +110,36 @@ class MvgSensor(Entity):
 
         This is the only method that should fetch new data for Home Assistant.
         """
-        if self._station_id:
-            desired_departures = []
-            results = mvg_api.get_departures(self._station_id)
+        self.data.update()
 
-            # The API sometimes returns departures that are extremely
-            # in the past (sometimes up to 25 minutes in the past)
-            # so we find and remove those. Departures that are "just
-            # missed" (5 minutes ago) we keep as it may be helpful
-            # to have in some use cases.
-            for departure in results:
-                if (
-                    departure["departureTimeMinutes"] > self.lead_time
-                    and departure["product"] in self.include_products
-                ):
-                    desired_departures.append(departure)
+        desired_departures = []
 
-            # The API will return an unsorted list of departures so we need to
-            # sort on departureTimeMinutes so that we get the soonest departure
-            # first.
-            self.departures = sorted(
-                desired_departures, key=lambda x: (x["departureTimeMinutes"])
-            )
+        for departure in self.data.departures:
+            if (
+                departure["departureTimeMinutes"] > self.lead_time
+                and departure["product"] in self.include_products
+            ):
+                desired_departures.append(departure)
 
-            if self.departures:
-                self._state = self.departures[0]["departureTimeMinutes"]
-                self._icon = ICONS[self.departures[0].get("product")]
-            else:
-                self._state = "-"
-                self._icon = "mdi:clock"
+        # The API will return an unsorted list of departures so we need to
+        # sort on departureTimeMinutes so that we get the soonest departure
+        # first. departureTime does not take into account any delay.
+        self.departures = sorted(
+            desired_departures, key=lambda x: (x["departureTimeMinutes"])
+        )
+
+        if self.departures:
+            self._state = self.departures[0]["departureTimeMinutes"]
+            self._icon = ICONS[self.departures[0].get("product")]
+        else:
+            self._state = "-"
+            self._icon = "mdi:clock"
+
+
+class MvgDepartureData:
+    def __init__(self, station_id):
+        self._station_id = station_id
+        self.departures = []
+
+    def update(self):
+        self.departures = mvg_api.get_departures(self._station_id)

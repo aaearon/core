@@ -5,7 +5,8 @@
       "user": {
         "description": "Provide the station to retrieve depatures for",
         "data": {
-          "station": "Station"
+          "station": "Station",
+          "name": "Optional: Custom sensor name"
         }
       }
     }
@@ -17,7 +18,8 @@
         "description": "Customize the departures returned",
         "data": {
           "include_products": "Modes of transporation",
-          "lead_time": "Lead time"
+          "lead_time": "Lead time",
+          "departures_to_show": "Number of departures to retrieve"
         }
       }
     }

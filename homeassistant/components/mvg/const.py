@@ -6,9 +6,15 @@ CONF_STATION = "station"
 CONF_STATION_ID = "id"
 CONF_INCLUDE_PRODUCTS = "include_products"
 CONF_INCLUDE_LINES = "include_lines"
+
 CONF_LEAD_TIME = "lead_time"
-
-ATTR_STATION_PRODUCTS = "products"
-
 DEFAULT_LEAD_TIME = 0
+
+CONF_DEPARTURES_TO_SHOW = "departures_to_show"
+DEFAULT_DEPARTURES_TO_SHOW = 5
+
+STATION_PRODUCTS = "products"
+
 UNDO_UPDATE_LISTENER = "undo_update_listener"
+
+DATA_ATTRIBUTION = "Data provided by mvg.de"

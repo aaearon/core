@@ -4,7 +4,7 @@
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/mvg",
   "requirements": [
-    "mvg_api==1.2.5"
+    "mvg_api==1.2.6"
   ],
   "ssdp": [],
   "zeroconf": [],

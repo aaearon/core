@@ -954,6 +954,9 @@ mitemp_bt==0.0.3
 # homeassistant.components.tts
 mutagen==1.45.1
 
+# homeassistant.components.mvg
+mvg_api==1.2.6
+
 # homeassistant.components.mychevy
 mychevy==2.0.1
 

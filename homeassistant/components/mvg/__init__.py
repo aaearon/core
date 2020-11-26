@@ -6,12 +6,7 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
-from .const import (
-    DOMAIN,
-    CONF_STATION,
-    UNDO_UPDATE_LISTENER,
-    CONF_INCLUDE_PRODUCTS,
-)
+from .const import CONF_STATION, DOMAIN, UNDO_UPDATE_LISTENER
 
 PLATFORMS = ["sensor"]
 
