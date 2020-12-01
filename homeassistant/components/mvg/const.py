@@ -6,6 +6,10 @@ CONF_STATION = "station"
 CONF_STATION_ID = "id"
 CONF_INCLUDE_PRODUCTS = "include_products"
 CONF_INCLUDE_LINES = "include_lines"
+CONF_ROUTE = "is_route"
+
+CONF_DESTINATION_STATION = "dest_station"
+CONF_DESTINATION_STATION_ID = "dest_station_id"
 
 CONF_LEAD_TIME = "lead_time"
 DEFAULT_LEAD_TIME = 0

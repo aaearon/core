@@ -143,3 +143,39 @@ class MvgDepartureData:
 
     def update(self):
         self.departures = mvg_api.get_departures(self._station_id)
+
+
+class MvgRouteData:
+    def __init__(self, start_station_id, end_station_id, include_products):
+        self._start_station_id = start_station_id
+        self._end_station_id = end_station_id
+        self._include_products = include_products
+        self.include_ubahn = True
+        self.include_bus = True
+        self.include_tram = True
+        self.include_sbahn = True
+
+        self.departures = []
+
+    def update(self):
+
+        if not "UBAHN" in self._include_products:
+            self.include_ubahn = False
+
+        if not "BUS" in self._include_products:
+            self.include_bus = False
+
+        if not "TRAM" in self._include_products:
+            self.include_tram = False
+
+        if not "BAHN" in self._include_products:
+            self.include_bahn = False
+
+        self.departures = mvg_api.get_route(
+            self._start_station_id,
+            self._end_station_id,
+            ubahn=self.include_ubahn,
+            bus=self.include_bus,
+            tram=self.include_tram,
+            sbahn=self.include_sbahn,
+        )[0]

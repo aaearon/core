@@ -4,8 +4,15 @@
     },
     "config": {
         "step": {
+            "route": {
+                "data": {
+                    "dest_station": "Destination station"
+                },
+                "description": "Provide destination details "
+            },
             "user": {
                 "data": {
+                    "is_route": "Make this sensor a route",
                     "name": "Optional: Custom sensor name",
                     "station": "Station"
                 },
